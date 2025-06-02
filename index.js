@@ -4,9 +4,10 @@ const { MongoClient, ServerApiVersion } = require("mongodb");
 require("dotenv").config();
 const port = 5000;
 const app = express();
-app.use(express.json());
 const bcrypt = require("bcrypt");
 
+// middlewere
+app.use(express.json());
 app.use(
   cors({
     origin: "http://localhost:5173", // Allow Vite frontend
@@ -31,7 +32,7 @@ async function run() {
     await client.connect();
     const userCollection = client.db("authorization").collection("users");
 
-    // user signup api
+    // user signjUp api
     app.post("/api/signup", async (req, res) => {
       const { userName, password, shopNames } = req.body;
 
@@ -53,6 +54,16 @@ async function run() {
         });
       }
 
+      // Check for existing user names
+      const isUserExist = await userCollection.findOne({ userName });
+
+      if (isUserExist) {
+        return res.status(400).send({
+          success: false,
+          message: "Username is already taken.",
+        });
+      }
+
       // Try inserting user
       try {
         const result = await userCollection.insertOne({
@@ -65,6 +76,38 @@ async function run() {
       } catch (error) {
         console.error(error);
         res.status(500).send({ success: false, message: "Server error." });
+      }
+    });
+
+    // user signIn api
+    app.post("/api/signin", async (req, res) => {
+      const { userName, password, remember } = req.body; // remember is Boolean value
+
+      try {
+        const isExistUserName = await userCollection.findOne({ userName });
+
+        // validate userName
+        if (!isExistUserName) {
+          return res.status(400).send({ message: "Invalid user name!" });
+        }
+
+        // validate password using bcrypt
+        const isPasswordMatch = await bcrypt.compare(
+          password,
+          isExistUserName.password
+        );
+
+        if (!isPasswordMatch) {
+          return res.status(400).send({ message: "Invalid password!" });
+        }
+
+        const result = await userCollection.findOne({
+          userName,
+        });
+        res.status(200).send({ success: true, result });
+      } catch (error) {
+        console.error("Login Error", error);
+        res.status(500).send({ message: "Internal server error." });
       }
     });
   } finally {
