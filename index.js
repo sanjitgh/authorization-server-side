@@ -13,12 +13,12 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "http://localhost:5173", // Allow Vite frontend
+    origin: ["http://localhost:5173", "https://shop-auth-840db.web.app"],
     credentials: true,
   })
 );
-// Connect Mongo
 
+// Connect Mongo
 const uri = process.env.MONGODB_URI;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -113,8 +113,13 @@ async function run() {
         res.cookie("authToken", token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
-          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-          maxAge: remember ? 7 * 24 * 60 * 60 * 1000 : 30 * 60 * 1000, // set 7 days or 30 mins
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+          domain:
+            process.env.NODE_ENV === "production"
+              ? process.env.COOKIE_DOMAIN // specific domain
+              : undefined,
+          maxAge: remember ? 7 * 24 * 60 * 60 * 1000 : 30 * 60 * 1000,
+          path: "",
         });
 
         const result = await userCollection.findOne({
@@ -157,7 +162,12 @@ async function run() {
       res.clearCookie("authToken", {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        domain:
+          process.env.NODE_ENV === "production"
+            ? process.env.COOKIE_DOMAIN // specific domain
+            : undefined,
+        path: "",
       });
       res.send({ success: true, message: "Logged out Successfully!" });
     });
