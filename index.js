@@ -13,7 +13,19 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://shop-auth-840db.web.app"],
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        origin === "https://shop-auth-840db.web.app" ||
+        origin === "http://localhost:5173" ||
+        origin.endsWith(".localhost:5173") ||
+        origin.endsWith(".shopauth-lyart.vercel.app")
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS: " + origin));
+      }
+    },
     credentials: true,
   })
 );
@@ -114,12 +126,7 @@ async function run() {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-          domain:
-            process.env.NODE_ENV === "production"
-              ? process.env.COOKIE_DOMAIN // specific domain
-              : undefined,
           maxAge: remember ? 7 * 24 * 60 * 60 * 1000 : 30 * 60 * 1000,
-          path: "",
         });
 
         const result = await userCollection.findOne({
@@ -163,11 +170,7 @@ async function run() {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        domain:
-          process.env.NODE_ENV === "production"
-            ? process.env.COOKIE_DOMAIN // specific domain
-            : undefined,
-        path: "",
+        path: "/",
       });
       res.send({ success: true, message: "Logged out Successfully!" });
     });
