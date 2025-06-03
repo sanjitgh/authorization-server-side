@@ -13,25 +13,13 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (
-        !origin ||
-        origin === "https://shop-auth-840db.web.app" ||
-        origin === "http://localhost:5173" ||
-        origin.endsWith(".localhost:5173") ||
-        origin.endsWith(".shopauth-lyart.vercel.app")
-      ) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS: " + origin));
-      }
-    },
+    origin: ["http://localhost:5173", "https://shop-auth-840db.web.app"],
     credentials: true,
   })
 );
 
 // Connect Mongo
-const uri = process.env.MONGODB_URI;
+const uri = `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@cluster0.rwhf0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -125,7 +113,7 @@ async function run() {
         res.cookie("authToken", token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
-          sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
           maxAge: remember ? 7 * 24 * 60 * 60 * 1000 : 30 * 60 * 1000,
         });
 
@@ -170,7 +158,6 @@ async function run() {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        path: "/",
       });
       res.send({ success: true, message: "Logged out Successfully!" });
     });
