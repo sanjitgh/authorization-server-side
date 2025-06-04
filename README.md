@@ -39,3 +39,7 @@ This is the backend of **Auth**, a full-stack authentication system built with E
 ```bash
 git clone https://github.com/sanjitgh/authorization-server-side.git
 cd authorization-server-side
+
+
+- **Note**: Maybe sub domain is't wrok, because i don't have any custom domain right now.🥲
+```

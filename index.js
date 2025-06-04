@@ -13,12 +13,29 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://shop-auth-840db.web.app"],
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        "http://localhost:5173",
+        "https://shop-auth-840db.web.app",
+      ];
+
+      const allowedDomain = ".shop-auth-840db.web.app"; // allow any subdomain
+
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        origin.endsWith(allowedDomain)
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
 
-// Connect Mongo
+// Connect MongoDB
 const uri = `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@cluster0.rwhf0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -32,7 +49,6 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
     const userCollection = client.db("authorization").collection("users");
 
     // user signUp api
@@ -46,11 +62,11 @@ async function run() {
       const cleanedShops = shopNames.map((shop) => shop.trim().toLowerCase());
 
       // Check for existing shop names
-      const isExist = await userCollection.findOne({
+      const isExistShopName = await userCollection.findOne({
         shopNames: { $in: cleanedShops },
       });
 
-      if (isExist) {
+      if (isExistShopName) {
         return res.status(400).send({
           success: false,
           message: "One or more shop names already exist.",
@@ -114,6 +130,10 @@ async function run() {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+          // domain:
+          //   process.env.NODE_ENV === "production"
+          //     ? ".domain.com"
+          //     : undefined, // sub domain will be availavle when we have custom domain
           maxAge: remember ? 7 * 24 * 60 * 60 * 1000 : 30 * 60 * 1000,
         });
 
